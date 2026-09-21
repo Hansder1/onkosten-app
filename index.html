@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Onkosten</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d5c53">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Onkosten">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#f5f4f0; --card:#ffffff; --ink:#1a1a18; --muted:#6b6b66;
+    --line:#e2e0da; --accent:#0d5c53; --accent-ink:#ffffff;
+    --warn:#a8532a; --ok:#2c6e49; --err:#9b2c2c;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14150f; --card:#1e1f19; --ink:#f0efe9; --muted:#9a9a92;
+      --line:#31322a; --accent:#4bbfae; --accent-ink:#0c1a18;
+      --warn:#e0a074; --ok:#7fc79a; --err:#e88c8c;
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0}
+  body{
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink);
+    padding-bottom:calc(74px + env(safe-area-inset-bottom));
+    -webkit-text-size-adjust:100%;
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    background:var(--accent); color:var(--accent-ink);
+    padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  header h1{font-size:17px; margin:0; font-weight:650; letter-spacing:.2px; flex:1}
+  .chip{
+    background:rgba(255,255,255,.18); border:0; color:inherit;
+    font:inherit; font-size:13px; font-weight:600;
+    padding:5px 11px; border-radius:999px;
+  }
+  main{padding:16px; max-width:620px; margin:0 auto}
+  .view{display:none} .view.on{display:block}
+
+  .card{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); padding:14px; margin-bottom:14px;
+  }
+  label{display:block; font-size:12.5px; font-weight:650; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px}
+  input,select,textarea{
+    width:100%; font:inherit; color:var(--ink); background:var(--bg);
+    border:1px solid var(--line); border-radius:10px; padding:12px;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); outline-offset:1px}
+  .row{display:flex; gap:10px} .row>*{flex:1}
+  .field{margin-bottom:12px}
+  .hint{font-size:12.5px; color:var(--muted); margin:6px 0 0}
+
+  button{font:inherit; cursor:pointer}
+  .btn{
+    display:block; width:100%; border:0; border-radius:12px;
+    padding:15px; font-weight:650; font-size:16px;
+    background:var(--accent); color:var(--accent-ink);
+  }
+  .btn[disabled]{opacity:.45}
+  .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+  .btn.small{padding:10px; font-size:14px}
+  .btn.danger{background:transparent; color:var(--err); border:1px solid var(--line)}
+
+  .shot{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; min-height:150px; border:2px dashed var(--line);
+    border-radius:var(--radius); background:var(--card); color:var(--muted);
+    font-weight:600; overflow:hidden; padding:0;
+  }
+  .shot img{width:100%; height:100%; max-height:280px; object-fit:contain; display:block}
+  .shot .plus{font-size:34px; line-height:1}
+
+  .fname{
+    font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--bg); border:1px dashed var(--line); border-radius:10px;
+    padding:10px; word-break:break-all; color:var(--muted);
+  }
+  .fname b{color:var(--ink); font-weight:600}
+
+  nav{
+    position:fixed; left:0; right:0; bottom:0; z-index:10;
+    display:flex; background:var(--card); border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{
+    flex:1; border:0; background:transparent; color:var(--muted);
+    padding:11px 4px 12px; font-size:11px; font-weight:650;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav button .ic{font-size:19px; line-height:1}
+  nav button.on{color:var(--accent)}
+  .badge{
+    display:inline-block; min-width:17px; padding:0 5px; margin-left:4px;
+    background:var(--warn); color:#fff; border-radius:999px;
+    font-size:10.5px; line-height:17px; font-weight:700;
+  }
+
+  .toast{
+    position:fixed; left:12px; right:12px; bottom:calc(84px + env(safe-area-inset-bottom));
+    z-index:30; background:var(--ink); color:var(--bg);
+    padding:13px 15px; border-radius:12px; font-size:14.5px; font-weight:550;
+    box-shadow:0 8px 28px rgba(0,0,0,.25); transform:translateY(140%);
+    transition:transform .22s ease; max-width:600px; margin:0 auto;
+  }
+  .toast.on{transform:translateY(0)}
+  .toast.ok{background:var(--ok); color:#fff}
+  .toast.err{background:var(--err); color:#fff}
+
+  .item{
+    border:1px solid var(--line); border-radius:12px; padding:11px 12px;
+    margin-bottom:9px; background:var(--card); font-size:14px;
+  }
+  .item .t{font-weight:650; word-break:break-all}
+  .item .s{color:var(--muted); font-size:12.5px; margin-top:3px}
+  .item a{color:var(--accent)}
+  h2{font-size:15px; margin:20px 0 9px; letter-spacing:.2px}
+  h2:first-child{margin-top:0}
+  .empty{color:var(--muted); font-size:14px; text-align:center; padding:26px 10px}
+  .sep{height:1px; background:var(--line); margin:16px 0}
+  .pill{display:inline-block; font-size:12px; font-weight:650; padding:3px 9px;
+    border-radius:999px; background:var(--bg); border:1px solid var(--line); color:var(--muted)}
+  .pill.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+  .seg{display:flex; gap:8px}
+  .seg button{flex:1; padding:12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font-weight:650}
+  .seg button.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Onkosten</h1>
+  <button class="chip" id="whoChip" type="button">—</button>
+</header>
+
+<main>
+
+  <!-- ============ NIEUWE BON ============ -->
+  <section class="view on" id="v-new">
+    <input type="file" id="file" accept="image/*" capture="environment" hidden>
+
+    <button class="shot" id="shot" type="button">
+      <span class="plus">＋</span><span>Foto van het kasticket</span>
+    </button>
+    <p class="hint" id="shotHint">Tik om de camera te openen. Lang tikken op “Kies uit bibliotheek” hieronder als de foto er al staat.</p>
+    <button class="btn ghost small" id="pick" type="button" style="margin:8px 0 16px">Kies uit fotobibliotheek</button>
+
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label for="f-date">Datum</label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="field">
+          <label for="f-amount">Bedrag (€)</label>
+          <input type="text" id="f-amount" inputmode="decimal" placeholder="34,50" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-location">Plaats <span id="gpsState" class="pill">geen GPS</span></label>
+        <input type="text" id="f-location" placeholder="Antwerpen" autocomplete="off" autocapitalize="words">
+      </div>
+
+      <div class="field">
+        <label for="f-provider">Verstrekker</label>
+        <input type="text" id="f-provider" placeholder="De Pelgrim" autocomplete="off" autocapitalize="words">
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="f-category">Categorie</label>
+          <select id="f-category">
+            <option value="">—</option>
+            <option>Maaltijd</option>
+            <option>Representatie</option>
+            <option>Brandstof</option>
+            <option>Parking / tol</option>
+            <option>Openbaar vervoer</option>
+            <option>Hotel</option>
+            <option>Kantoorbenodigdheden</option>
+            <option>Materiaal</option>
+            <option>Andere</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-note">Notitie</label>
+          <input type="text" id="f-note" placeholder="bv. klant De Lijn" autocomplete="off">
+        </div>
+      </div>
+
+      <label>Bestandsnaam</label>
+      <div class="fname" id="fname">—</div>
+    </div>
+
+    <button class="btn" id="save" type="button" disabled>Opslaan in Drive</button>
+    <button class="btn ghost small" id="clear" type="button" style="margin-top:9px">Formulier leegmaken</button>
+
+    <h2 id="recentTitle" style="display:none">Recent verstuurd</h2>
+    <div id="recent"></div>
+  </section>
+
+  <!-- ============ WACHTRIJ ============ -->
+  <section class="view" id="v-queue">
+    <div id="queue"></div>
+    <button class="btn" id="retry" type="button">Nu opnieuw versturen</button>
+    <p class="hint">Bonnen blijven hier staan tot ze veilig in Drive zitten. Ze worden automatisch opnieuw verstuurd zodra je weer verbinding hebt.</p>
+  </section>
+
+  <!-- ============ INSTELLINGEN ============ -->
+  <section class="view" id="v-set">
+    <div class="card">
+      <div class="field">
+        <label>Wie ben je?</label>
+        <div class="seg" id="profSeg">
+          <button type="button" data-p="hans">Hans</button>
+          <button type="button" data-p="isa">Isa</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="s-endpoint">Adres van het script</label>
+        <input type="url" id="s-endpoint" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="s-secret">Wachtwoord</label>
+        <input type="password" id="s-secret" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="s-decimal">Decimaalteken in de bestandsnaam</label>
+        <select id="s-decimal">
+          <option value=",">komma — 34,50</option>
+          <option value=".">punt — 34.50</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="s-gps">GPS gebruiken voor de plaats</label>
+        <select id="s-gps">
+          <option value="1">Ja, plaats automatisch invullen</option>
+          <option value="0">Nee, ik typ de plaats zelf</option>
+        </select>
+      </div>
+      <button class="btn" id="saveSet" type="button">Bewaren</button>
+      <button class="btn ghost small" id="test" type="button" style="margin-top:9px">Verbinding testen</button>
+      <div class="fname" id="testOut" style="margin-top:10px; display:none"></div>
+    </div>
+
+    <div class="card">
+      <h2>Instellen op een tweede telefoon</h2>
+      <p class="hint" style="margin-top:0">Maak een link met alle instellingen erin en stuur die door. Wie de link opent, heeft de app meteen goed staan — enkel het profiel moet nog gekozen worden.</p>
+      <button class="btn ghost small" id="mkLink" type="button" style="margin-top:10px">Setup-link maken</button>
+      <div class="fname" id="linkOut" style="margin-top:10px; display:none"></div>
+    </div>
+
+    <div class="card">
+      <h2>Onderhoud</h2>
+      <button class="btn ghost small" id="reload" type="button">App vernieuwen</button>
+      <button class="btn danger small" id="wipe" type="button" style="margin-top:9px">Instellingen wissen</button>
+      <p class="hint" id="ver"></p>
+    </div>
+  </section>
+
+</main>
+
+<nav>
+  <button class="on" data-v="new"><span class="ic">🧾</span>Nieuwe bon</button>
+  <button data-v="queue"><span class="ic">📤</span>Wachtrij<span class="badge" id="qBadge" style="display:none">0</span></button>
+  <button data-v="set"><span class="ic">⚙️</span>Instellingen</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const APP_VERSION = '1.0.0';
+
+/* ---------------------------------------------------------------
+   Instellingen
+--------------------------------------------------------------- */
+const CFG_KEY = 'onkosten.cfg';
+const defaults = { endpoint:'', secret:'', profile:'', decimal:',', gps:'1' };
+
+function getCfg(){
+  try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem(CFG_KEY) || '{}')); }
+  catch(e){ return Object.assign({}, defaults); }
+}
+function setCfg(patch){
+  const c = Object.assign(getCfg(), patch);
+  localStorage.setItem(CFG_KEY, JSON.stringify(c));
+  paintChip();
+  return c;
+}
+
+// Setup-link:  index.html#s=<base64 van de instellingen>
+(function applySetupLink(){
+  const m = /[#&]s=([^&]+)/.exec(location.hash || '');
+  if (!m) return;
+  try {
+    const raw = decodeURIComponent(escape(atob(m[1].replace(/-/g,'+').replace(/_/g,'/'))));
+    const data = JSON.parse(raw);
+    const patch = {};
+    if (data.e) patch.endpoint = data.e;
+    if (data.s) patch.secret = data.s;
+    if (data.d) patch.decimal = data.d;
+    if (data.g !== undefined) patch.gps = String(data.g);
+    setCfg(patch);
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(function(){ toast('Instellingen overgenomen. Kies nu je naam.', 'ok'); go('set'); }, 400);
+  } catch(e){ /* stille mislukking */ }
+})();
+
+/* ---------------------------------------------------------------
+   Kleine helpers
+--------------------------------------------------------------- */
+function $(id){ return document.getElementById(id); }   // functiedeclaratie: ook bruikbaar vóór dit punt
+let toastTimer = null;
+function toast(msg, kind){
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast on' + (kind ? ' ' + kind : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.className = 'toast'; }, kind === 'err' ? 6500 : 3400);
+}
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function uuid(){
+  return 'b-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10);
+}
+function paintChip(){
+  const p = getCfg().profile;
+  $('whoChip').textContent = p ? (p === 'hans' ? 'Hans' : 'Isa') : 'kies naam';
+}
+
+/* Zelfde opkuis als in Code.gs, zodat de preview klopt met wat er in Drive komt */
+function cleanPart(s){
+  return String(s == null ? '' : s)
+    .replace(/[\\\/:*?"<>|#%{}$!'`@+=\[\]]/g, ' ')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/_/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
+}
+function fmtAmount(v){
+  const n = Number(String(v == null ? '' : v).replace(',', '.'));
+  if (!isFinite(n) || String(v).trim() === '') return null;
+  return n.toFixed(2).replace('.', getCfg().decimal);
+}
+function buildName(){
+  const d = $('f-date').value || todayISO();
+  const plaats = cleanPart($('f-location').value) || 'onbekend';
+  const bedrag = fmtAmount($('f-amount').value) || ('0' + getCfg().decimal + '00');
+  const wie = cleanPart($('f-provider').value) || 'onbekend';
+  return d + '_' + plaats + '_' + bedrag + '_' + wie + '.jpg';
+}
+
+/* ---------------------------------------------------------------
+   Navigatie
+--------------------------------------------------------------- */
+function go(v){
+  ['new','queue','set'].forEach(function(k){ $('v-'+k).classList.toggle('on', k === v); });
+  document.querySelectorAll('nav button').forEach(function(b){ b.classList.toggle('on', b.dataset.v === v); });
+  window.scrollTo(0,0);
+  if (v === 'queue') renderQueue();
+}
+document.querySelectorAll('nav button').forEach(function(b){
+  b.addEventListener('click', function(){ go(b.dataset.v); });
+});
+$('whoChip').addEventListener('click', function(){ go('set'); });
+
+/* ---------------------------------------------------------------
+   Foto: kiezen, verkleinen, tonen
+--------------------------------------------------------------- */
+let photoBlob = null;
+
+$('shot').addEventListener('click', function(){
+  $('file').setAttribute('capture', 'environment');
+  $('file').click();
+});
+$('pick').addEventListener('click', function(){
+  $('file').removeAttribute('capture');
+  $('file').click();
+});
+
+$('file').addEventListener('change', async function(ev){
+  const f = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!f) return;
+  toast('Foto verwerken…');
+  try {
+    photoBlob = await shrink(f, 2000, 0.82);
+  } catch(e){
+    photoBlob = f;
+  }
+  const url = URL.createObjectURL(photoBlob);
+  $('shot').innerHTML = '<img alt="kasticket" src="' + url + '">';
+  $('shotHint').textContent = 'Tik op de foto om ze te vervangen. Grootte: ' + Math.round(photoBlob.size/1024) + ' kB.';
+  refresh();
+  if (getCfg().gps === '1') locate();
+  toast('Foto klaar', 'ok');
+});
+
+function shrink(file, max, quality){
+  return new Promise(function(resolve, reject){
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function(){
+      try {
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const scale = Math.min(1, max / Math.max(w, h));
+        w = Math.round(w * scale); h = Math.round(h * scale);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        c.toBlob(function(b){ b ? resolve(b) : reject(new Error('canvas')); }, 'image/jpeg', quality);
+      } catch(err){ URL.revokeObjectURL(url); reject(err); }
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('laden mislukt')); };
+    img.src = url;
+  });
+}
+
+/* ---------------------------------------------------------------
+   GPS + plaatsnaam
+--------------------------------------------------------------- */
+function setGps(text, on){
+  const el = $('gpsState');
+  el.textContent = text;
+  el.className = 'pill' + (on ? ' on' : '');
+}
+
+function locate(){
+  if (!navigator.geolocation){ setGps('geen GPS', false); return; }
+  if ($('f-location').dataset.touched === '1') return;   // gebruiker typte zelf
+  setGps('zoeken…', false);
+  navigator.geolocation.getCurrentPosition(async function(pos){
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    setGps('GPS ok', true);
+    try {
+      const place = await reverse(lat, lon);
+      if (place && $('f-location').dataset.touched !== '1'){
+        $('f-location').value = place;
+        setGps(place, true);
+        refresh();
+      }
+    } catch(e){
+      setGps(lat.toFixed(3) + ', ' + lon.toFixed(3), true);
+      if ($('f-location').dataset.touched !== '1'){
+        $('f-location').value = lat.toFixed(4) + ' ' + lon.toFixed(4);
+        refresh();
+      }
+    }
+  }, function(err){
+    setGps(err.code === 1 ? 'GPS geweigerd' : 'GPS mislukt', false);
+  }, { enableHighAccuracy:true, timeout:12000, maximumAge:120000 });
+}
+
+async function reverse(lat, lon){
+  const key = 'geo.' + lat.toFixed(3) + ',' + lon.toFixed(3);
+  const hit = sessionStorage.getItem(key);
+  if (hit) return hit;
+  const url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&accept-language=nl'
+            + '&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon);
+  const r = await fetch(url, { headers: { 'Accept':'application/json' } });
+  if (!r.ok) throw new Error('geocode ' + r.status);
+  const j = await r.json();
+  const a = j.address || {};
+  const place = a.city || a.town || a.village || a.municipality || a.suburb
+             || a.county || a.state || (j.name || '');
+  if (!place) throw new Error('geen plaats');
+  sessionStorage.setItem(key, place);
+  return place;
+}
+
+/* ---------------------------------------------------------------
+   Formulier
+--------------------------------------------------------------- */
+['f-date','f-amount','f-location','f-provider'].forEach(function(id){
+  $(id).addEventListener('input', refresh);
+});
+$('f-location').addEventListener('input', function(){ this.dataset.touched = '1'; });
+
+function refresh(){
+  $('fname').innerHTML = '<b>' + buildName().replace(/</g,'&lt;') + '</b>';
+  const ready = !!photoBlob
+    && fmtAmount($('f-amount').value) !== null
+    && $('f-provider').value.trim() !== ''
+    && $('f-location').value.trim() !== ''
+    && !!getCfg().endpoint && !!getCfg().profile;
+  $('save').disabled = !ready;
+  $('save').textContent = !getCfg().endpoint || !getCfg().profile
+    ? 'Eerst instellingen invullen'
+    : 'Opslaan in Drive';
+}
+
+$('clear').addEventListener('click', resetForm);
+function resetForm(){
+  photoBlob = null;
+  $('shot').innerHTML = '<span class="plus">＋</span><span>Foto van het kasticket</span>';
+  $('shotHint').textContent = 'Tik om de camera te openen.';
+  $('f-date').value = todayISO();
+  $('f-amount').value = '';
+  $('f-provider').value = '';
+  $('f-note').value = '';
+  $('f-category').value = '';
+  $('f-location').dataset.touched = '';
+  refresh();
+}
+
+/* ---------------------------------------------------------------
+   Wachtrij (IndexedDB) — bon gaat er eerst in, dan pas naar Drive
+--------------------------------------------------------------- */
+const DB = 'onkosten-db', STORE = 'queue';
+function db(){
+  return new Promise(function(res, rej){
+    const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = function(){ r.result.createObjectStore(STORE, { keyPath:'id' }); };
+    r.onsuccess = function(){ res(r.result); };
+    r.onerror = function(){ rej(r.error); };
+  });
+}
+function tx(mode, fn){
+  return db().then(function(d){
+    return new Promise(function(res, rej){
+      const t = d.transaction(STORE, mode);
+      const req = fn(t.objectStore(STORE));
+      t.oncomplete = function(){ res(req && req.result); };
+      t.onerror = function(){ rej(t.error); };
+      t.onabort = function(){ rej(t.error); };
+    });
+  });
+}
+const qPut = function(item){ return tx('readwrite', function(s){ return s.put(item); }); };
+const qDel = function(id){ return tx('readwrite', function(s){ return s.delete(id); }); };
+const qAll = function(){ return tx('readonly', function(s){ return s.getAll(); }); };
+
+async function renderQueue(){
+  let items = [];
+  try { items = (await qAll()) || []; } catch(e){ items = []; }
+  items.sort(function(a,b){ return a.createdAt - b.createdAt; });
+
+  const box = $('queue');
+  if (!items.length){
+    box.innerHTML = '<div class="empty">Niets in de wachtrij — alles staat in Drive.</div>';
+  } else {
+    box.innerHTML = items.map(function(it){
+      return '<div class="item"><div class="t">' + esc(it.name) + '</div>'
+        + '<div class="s">' + esc(it.meta.profile === 'hans' ? 'Hans' : 'Isa')
+        + ' · ' + new Date(it.createdAt).toLocaleString('nl-BE')
+        + (it.error ? ' · <span style="color:var(--err)">' + esc(it.error) + '</span>' : ' · wacht op verbinding')
+        + '</div></div>';
+    }).join('');
+  }
+  const b = $('qBadge');
+  b.textContent = items.length;
+  b.style.display = items.length ? 'inline-block' : 'none';
+  $('retry').disabled = !items.length;
+}
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+  return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+/* ---------------------------------------------------------------
+   Versturen
+--------------------------------------------------------------- */
+$('save').addEventListener('click', async function(){
+  if (!photoBlob) return;
+  const cfg = getCfg();
+  const item = {
+    id: uuid(),
+    createdAt: Date.now(),
+    name: buildName(),
+    blob: photoBlob,
+    meta: {
+      profile: cfg.profile,
+      date: $('f-date').value || todayISO(),
+      location: $('f-location').value.trim(),
+      amount: fmtAmount($('f-amount').value),
+      provider: $('f-provider').value.trim(),
+      category: $('f-category').value,
+      note: $('f-note').value.trim()
+    }
+  };
+  try {
+    await qPut(item);
+  } catch(e){
+    toast('Kon de bon niet lokaal bewaren: ' + e.message, 'err');
+    return;
+  }
+  resetForm();
+  renderQueue();
+  toast('Bewaard — versturen…');
+  flush();
+});
+
+$('retry').addEventListener('click', function(){ toast('Opnieuw proberen…'); flush(true); });
+window.addEventListener('online', function(){ flush(); });
+
+let flushing = false;
+async function flush(manual){
+  if (flushing) return;
+  const cfg = getCfg();
+  if (!cfg.endpoint || !cfg.secret){
+    if (manual) toast('Vul eerst het adres en wachtwoord in bij Instellingen.', 'err');
+    return;
+  }
+  flushing = true;
+  try {
+    let items = (await qAll()) || [];
+    items.sort(function(a,b){ return a.createdAt - b.createdAt; });
+    let done = 0;
+    for (const it of items){
+      let res;
+      try {
+        const b64 = await toB64(it.blob);
+        res = await post({
+          action: 'upload',
+          secret: cfg.secret,
+          clientId: it.id,
+          profile: it.meta.profile,
+          date: it.meta.date,
+          location: it.meta.location,
+          amount: it.meta.amount,
+          provider: it.meta.provider,
+          category: it.meta.category,
+          note: it.meta.note,
+          mimeType: it.blob.type || 'image/jpeg',
+          imageBase64: b64
+        });
+      } catch(err){
+        it.error = 'geen verbinding';
+        await qPut(it);
+        break;                                   // netwerk weg: rest blijft staan
+      }
+      if (res && res.ok){
+        await qDel(it.id);
+        addRecent(res);
+        done++;
+      } else {
+        it.error = (res && (res.message || res.error)) || 'onbekende fout';
+        await qPut(it);
+        if (res && res.error === 'auth') break;
+      }
+    }
+    await renderQueue();
+    const left = ((await qAll()) || []).length;
+    if (done && !left) toast(done === 1 ? 'Bon staat in Drive.' : done + ' bonnen staan in Drive.', 'ok');
+    else if (done && left) toast(done + ' verstuurd, ' + left + ' in wachtrij.', 'ok');
+    else if (left && manual) toast('Nog niet gelukt — zie wachtrij.', 'err');
+  } finally {
+    flushing = false;
+  }
+}
+
+function post(payload){
+  // Content-Type text/plain vermijdt de CORS-preflight die Apps Script niet beantwoordt
+  return fetch(getCfg().endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+    redirect: 'follow'
+  }).then(function(r){ return r.text(); }).then(function(txt){
+    try { return JSON.parse(txt); }
+    catch(e){ return { ok:false, error:'Onverwacht antwoord van het script' }; }
+  });
+}
+
+function toB64(blob){
+  return new Promise(function(res, rej){
+    const fr = new FileReader();
+    fr.onload = function(){ res(String(fr.result).split(',')[1]); };
+    fr.onerror = function(){ rej(fr.error); };
+    fr.readAsDataURL(blob);
+  });
+}
+
+/* Recent verstuurd */
+function addRecent(res){
+  let list = [];
+  try { list = JSON.parse(sessionStorage.getItem('recent') || '[]'); } catch(e){}
+  list.unshift({ name: res.name, url: res.url, folder: res.folder });
+  list = list.slice(0, 8);
+  sessionStorage.setItem('recent', JSON.stringify(list));
+  paintRecent();
+}
+function paintRecent(){
+  let list = [];
+  try { list = JSON.parse(sessionStorage.getItem('recent') || '[]'); } catch(e){}
+  $('recentTitle').style.display = list.length ? 'block' : 'none';
+  $('recent').innerHTML = list.map(function(r){
+    return '<div class="item"><div class="t">' + esc(r.name) + '</div>'
+      + '<div class="s">' + esc(r.folder) + ' · <a href="' + esc(r.url) + '" target="_blank" rel="noopener">openen in Drive</a></div></div>';
+  }).join('');
+}
+
+/* ---------------------------------------------------------------
+   Instellingen-scherm
+--------------------------------------------------------------- */
+function loadSettings(){
+  const c = getCfg();
+  $('s-endpoint').value = c.endpoint;
+  $('s-secret').value = c.secret;
+  $('s-decimal').value = c.decimal;
+  $('s-gps').value = c.gps;
+  document.querySelectorAll('#profSeg button').forEach(function(b){
+    b.classList.toggle('on', b.dataset.p === c.profile);
+  });
+  $('ver').textContent = 'Versie ' + APP_VERSION;
+}
+document.querySelectorAll('#profSeg button').forEach(function(b){
+  b.addEventListener('click', function(){
+    setCfg({ profile: b.dataset.p });
+    loadSettings(); refresh();
+    toast('Profiel: ' + (b.dataset.p === 'hans' ? 'Hans' : 'Isa'), 'ok');
+  });
+});
+$('saveSet').addEventListener('click', function(){
+  setCfg({
+    endpoint: $('s-endpoint').value.trim(),
+    secret: $('s-secret').value,
+    decimal: $('s-decimal').value,
+    gps: $('s-gps').value
+  });
+  refresh();
+  toast('Bewaard', 'ok');
+});
+$('test').addEventListener('click', async function(){
+  const out = $('testOut');
+  out.style.display = 'block';
+  out.textContent = 'Testen…';
+  setCfg({ endpoint: $('s-endpoint').value.trim(), secret: $('s-secret').value });
+  try {
+    const r = await post({ action:'ping', secret: getCfg().secret });
+    if (r && r.ok && r.pong){
+      out.innerHTML = '<b>Verbinding ok.</b><br>Mappen:<br>'
+        + Object.keys(r.folders || {}).map(function(k){
+            return '· ' + k + ' → ' + esc(r.folders[k]); }).join('<br>');
+      toast('Verbinding ok', 'ok');
+    } else {
+      out.textContent = 'Fout: ' + ((r && (r.message || r.error)) || 'onbekend');
+      toast('Test mislukt', 'err');
+    }
+  } catch(e){
+    out.textContent = 'Geen verbinding met het script. Klopt het adres?';
+    toast('Test mislukt', 'err');
+  }
+});
+$('mkLink').addEventListener('click', function(){
+  const c = getCfg();
+  if (!c.endpoint || !c.secret){ toast('Vul eerst adres en wachtwoord in.', 'err'); return; }
+  const payload = { e:c.endpoint, s:c.secret, d:c.decimal, g:c.gps };
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const link = location.origin + location.pathname + '#s=' + b64;
+  const out = $('linkOut');
+  out.style.display = 'block';
+  out.innerHTML = '<b>' + esc(link) + '</b>';
+  if (navigator.share){
+    navigator.share({ title:'Onkosten-app', url: link }).catch(function(){});
+  } else if (navigator.clipboard){
+    navigator.clipboard.writeText(link).then(function(){ toast('Link gekopieerd', 'ok'); });
+  }
+});
+$('reload').addEventListener('click', async function(){
+  if ('serviceWorker' in navigator){
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(function(r){ return r.unregister(); }));
+  }
+  if (window.caches){
+    const keys = await caches.keys();
+    await Promise.all(keys.map(function(k){ return caches.delete(k); }));
+  }
+  location.reload();
+});
+$('wipe').addEventListener('click', function(){
+  if (!confirm('Adres, wachtwoord en profiel wissen op deze telefoon?')) return;
+  localStorage.removeItem(CFG_KEY);
+  loadSettings(); paintChip(); refresh();
+  toast('Gewist', 'ok');
+});
+
+/* ---------------------------------------------------------------
+   Start
+--------------------------------------------------------------- */
+$('f-date').value = todayISO();
+paintChip();
+loadSettings();
+paintRecent();
+refresh();
+renderQueue();
+if (!getCfg().endpoint || !getCfg().profile) go('set');
+setTimeout(function(){ flush(); }, 1200);
+
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>

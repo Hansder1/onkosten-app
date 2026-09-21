@@ -1,6 +1,4 @@
-REGEL1
-REGEL2 test — é
-REGEL3/* Onkosten-app — service worker
+/* Onkosten-app — service worker
    Houdt de app zelf offline beschikbaar. Uploads lopen NOOIT via deze cache:
    die zitten in de wachtrij in IndexedDB. */
 
@@ -8,7 +6,9 @@ const VERSION = 'onkosten-v1.0.0';
 const SHELL = [
   './',
   './index.html',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', function (e) {
