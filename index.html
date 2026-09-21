@@ -236,7 +236,7 @@
         <input type="url" id="s-endpoint" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" autocapitalize="off" spellcheck="false">
       </div>
       <div class="field">
-        <label for="s-secret">Wachtwoord</label>
+        <label for="s-secret">Wachtwoord <button type="button" class="pill" id="revealSecret">toon</button></label>
         <input type="password" id="s-secret" autocomplete="off" autocapitalize="off" spellcheck="false">
       </div>
       <div class="field">
@@ -256,11 +256,12 @@
       <button class="btn" id="saveSet" type="button">Bewaren</button>
       <button class="btn ghost small" id="test" type="button" style="margin-top:9px">Verbinding testen</button>
       <div class="fname" id="testOut" style="margin-top:10px; display:none"></div>
+      <p class="hint" id="storageNote">Je vult dit één keer in; daarna blijft het op deze telefoon staan.</p>
     </div>
 
     <div class="card">
-      <h2>Instellen op een tweede telefoon</h2>
-      <p class="hint" style="margin-top:0">Maak een link met alle instellingen erin en stuur die door. Wie de link opent, heeft de app meteen goed staan — enkel het profiel moet nog gekozen worden.</p>
+      <h2>Herstel- en setup-link</h2>
+      <p class="hint" style="margin-top:0">Eén link met adres, wachtwoord en decimaalteken erin. Gebruik hem om een tweede telefoon in te stellen, of om deze telefoon in één tik te herstellen als de instellingen ooit verdwenen zijn. Bewaar hem in je Notities — dan hoef je nooit iets over te typen.</p>
       <button class="btn ghost small" id="mkLink" type="button" style="margin-top:10px">Setup-link maken</button>
       <div class="fname" id="linkOut" style="margin-top:10px; display:none"></div>
     </div>
@@ -285,7 +286,7 @@
 
 <script>
 'use strict';
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 
 /* ---------------------------------------------------------------
    Instellingen
@@ -745,6 +746,12 @@ document.querySelectorAll('#profSeg button').forEach(function(b){
     toast('Profiel: ' + (b.dataset.p === 'hans' ? 'Hans' : 'Isa'), 'ok');
   });
 });
+$('revealSecret').addEventListener('click', function(){
+  const el = $('s-secret');
+  const show = el.type === 'password';
+  el.type = show ? 'text' : 'password';
+  this.textContent = show ? 'verberg' : 'toon';
+});
 $('saveSet').addEventListener('click', function(){
   setCfg({
     endpoint: $('s-endpoint').value.trim(),
@@ -821,6 +828,16 @@ refresh();
 renderQueue();
 if (!getCfg().endpoint || !getCfg().profile) go('set');
 setTimeout(function(){ flush(); }, 1200);
+
+// iOS mag gegevens van weinig gebruikte web-apps opruimen. Dit vraagt om
+// een uitzondering, zodat je instellingen en wachtrij blijven staan.
+if (navigator.storage && navigator.storage.persist){
+  navigator.storage.persist().then(function(granted){
+    $('storageNote').textContent = granted
+      ? 'Je vult dit één keer in; daarna blijft het op deze telefoon staan, ook als je de app een tijd niet gebruikt.'
+      : 'Je vult dit één keer in; daarna blijft het op deze telefoon staan. Gebruik je de app maandenlang niet, dan kan iOS de gegevens opruimen — met je bewaarde setup-link zet je alles in één tik terug.';
+  }).catch(function(){});
+}
 
 if ('serviceWorker' in navigator){
   window.addEventListener('load', function(){
